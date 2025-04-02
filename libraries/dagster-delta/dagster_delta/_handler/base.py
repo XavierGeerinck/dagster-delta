@@ -83,10 +83,8 @@ class DeltalakeBaseArrowTypeHandler(DbTypeHandler[T], Generic[T]):
         for key in keys:
             if key in metadata_output or {}:
                 result[key] = metadata_output[key]
-            elif key in metadata_definition or {}:
-                result[key] = metadata_definition[key]
             else:
-                result[key] = None
+                result[key] = metadata_definition.get(key)
 
             # If it's a TextMetadataValue, cast it to string
             if isinstance(result[key], MetadataValue):
