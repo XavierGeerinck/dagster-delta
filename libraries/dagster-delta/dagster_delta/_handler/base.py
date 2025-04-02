@@ -56,7 +56,7 @@ class DeltalakeBaseArrowTypeHandler(DbTypeHandler[T], Generic[T]):
     @staticmethod
     def _find_keys_in_metadata(
         context: OutputContext,
-        keys=["merge_predicate", "merge_operations_config"],
+        keys: list[str] = ["merge_predicate", "merge_operations_config"],
     ) -> dict[str, Any]:
         """Finds the keys in the metadata in the following order:
 
@@ -104,12 +104,14 @@ class DeltalakeBaseArrowTypeHandler(DbTypeHandler[T], Generic[T]):
         logger.setLevel("DEBUG")
 
         keys_from_metadata = self._find_keys_in_metadata(
-            context, ["merge_predicate", "merge_operations_config"]
+            context,
+            ["merge_predicate", "merge_operations_config"],
         )
 
         merge_predicate_from_metadata = keys_from_metadata.get("merge_predicate", None)
         merge_operations_config_from_metadata = keys_from_metadata.get(
-            "merge_operations_config", None
+            "merge_operations_config",
+            None,
         )
 
         definition_metadata = context.definition_metadata or {}
