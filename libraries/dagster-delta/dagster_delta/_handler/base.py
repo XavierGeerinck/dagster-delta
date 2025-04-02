@@ -76,7 +76,6 @@ class DeltalakeBaseArrowTypeHandler(DbTypeHandler[T], Generic[T]):
         """
         metadata_definition = context.definition_metadata or {}
         metadata_output = context.output_metadata or {}
-        metadata_resource = context.resource_config or {}
 
         # Find each of the key in the definition or output metadata
         result = {}
@@ -86,8 +85,6 @@ class DeltalakeBaseArrowTypeHandler(DbTypeHandler[T], Generic[T]):
                 result[key] = metadata_output[key]
             elif key in metadata_definition or {}:
                 result[key] = metadata_definition[key]
-            elif key in context.resource_config or {}:
-                result[key] = metadata_resource[key]
             else:
                 result[key] = None
 
