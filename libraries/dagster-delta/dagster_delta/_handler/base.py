@@ -1,6 +1,6 @@
 import logging
 from abc import abstractmethod
-from typing import Any, Generic, Optional, TypeVar, Union, cast
+from typing import Any, Generic, Optional, TypeVar, Union, cast, Dict
 
 import pyarrow as pa
 import pyarrow.compute as pc
@@ -53,6 +53,53 @@ class DeltalakeBaseArrowTypeHandler(DbTypeHandler[T], Generic[T]):
         """Abstract method to return output stats"""
         pass
 
+    def _find_keys_in_metadata(
+        self,
+        context: OutputContext,
+        keys=["merge_predicate", "merge_operations_config"],
+    ) -> Dict[str, Any]:
+        """Finds the keys in the metadata in the following order:
+
+        It will find the merge_predicate or merge_operations_config in this order:
+        1. Runtime metadata
+        2. Definition metadata
+        3. IO Manager config
+
+        E.g., `merge_predicate` and `merge_operations_config`
+
+        Args:
+            context (OutputContext): The output context
+            keys (list[str], optional): The keys to find in the metadata. Defaults to ["merge_predicate", "merge_operations_config"].
+
+        Returns:
+            dict[str, Any]: The metadata with the keys found
+        """
+        metadata_definition = context.definition_metadata or {}
+        metadata_output = context.output_metadata or {}
+        metadata_resource = context.resource_config or {}
+
+        # Find each of the key in the definition or output metadata
+        result = {}
+
+        for key in keys:
+            if key in metadata_output or {}:
+                result[key] = metadata_output[key]
+            elif key in metadata_definition or {}:
+                result[key] = metadata_definition[key]
+            elif key in context.resource_config or {}:
+                result[key] = metadata_resource[key]
+            else:
+                result[key] = None
+
+            # If it's a TextMetadataValue, cast it to string
+            if isinstance(result[key], MetadataValue):
+                if result[key].value is not None:
+                    result[key] = str(result[key].value)
+                else:
+                    result[key] = None
+
+        return result
+
     def handle_output(
         self,
         context: OutputContext,
@@ -63,26 +110,17 @@ class DeltalakeBaseArrowTypeHandler(DbTypeHandler[T], Generic[T]):
         """Stores pyarrow types in Delta table."""
         logger = logging.getLogger()
         logger.setLevel("DEBUG")
-        definition_metadata = context.definition_metadata or {}
-        output_metadata = context.output_metadata or {}
-        # Gets merge_predicate or merge_operations_config in this order: runtime metadata -> definition metadata -> IO Manager config
-        merge_predicate_from_metadata = output_metadata.get(
-            "merge_predicate",
-        )
-        if merge_predicate_from_metadata is not None:
-            merge_predicate_from_metadata = merge_predicate_from_metadata.value
-        if merge_predicate_from_metadata is None:
-            merge_predicate_from_metadata = definition_metadata.get("merge_predicate")
 
-        merge_operations_config_from_metadata = output_metadata.get(
-            "merge_operations_config",
+        keys_from_metadata = self._find_keys_in_metadata(
+            context, ["merge_predicate", "merge_operations_config"]
         )
-        if merge_operations_config_from_metadata is not None:
-            merge_operations_config_from_metadata = merge_operations_config_from_metadata.value
-        if merge_operations_config_from_metadata is None:
-            merge_operations_config_from_metadata = definition_metadata.get(
-                "merge_operations_config",
-            )
+
+        merge_predicate_from_metadata = keys_from_metadata.get("merge_predicate", None)
+        merge_operations_config_from_metadata = keys_from_metadata.get(
+            "merge_operations_config", None
+        )
+
+        definition_metadata = context.definition_metadata or {}
         additional_table_config = definition_metadata.get("table_configuration", {})
         if connection.table_config is not None:
             table_config = additional_table_config | connection.table_config
