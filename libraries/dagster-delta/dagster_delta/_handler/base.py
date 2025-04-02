@@ -90,10 +90,7 @@ class DeltalakeBaseArrowTypeHandler(DbTypeHandler[T], Generic[T]):
 
             # If it's a TextMetadataValue, cast it to string
             if isinstance(result[key], MetadataValue):
-                if result[key].value is not None:
-                    result[key] = str(result[key].value)
-                else:
-                    result[key] = None
+                result[key] = result[key].value
 
         return result
 
