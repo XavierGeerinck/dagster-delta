@@ -1,6 +1,6 @@
 import logging
 from abc import abstractmethod
-from typing import Any, Generic, Optional, TypeVar, Union, cast, Dict
+from typing import Any, Generic, Optional, TypeVar, Union, cast
 
 import pyarrow as pa
 import pyarrow.compute as pc
@@ -53,11 +53,11 @@ class DeltalakeBaseArrowTypeHandler(DbTypeHandler[T], Generic[T]):
         """Abstract method to return output stats"""
         pass
 
+    @staticmethod
     def _find_keys_in_metadata(
-        self,
         context: OutputContext,
         keys=["merge_predicate", "merge_operations_config"],
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Finds the keys in the metadata in the following order:
 
         It will find the merge_predicate or merge_operations_config in this order:
